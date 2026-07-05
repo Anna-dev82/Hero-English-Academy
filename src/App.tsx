@@ -6,10 +6,8 @@ import { MemoryMission } from '@/components/mission/MemoryMission'
 import { parseMissionScreen } from '@/constants/game'
 import { AcademyMapScreen } from '@/screens/AcademyMapScreen'
 import { FinalBossScreen } from '@/screens/FinalBossScreen'
-import { LevelTestScreen } from '@/screens/LevelTestScreen'
 import { RewardsScreen } from '@/screens/RewardsScreen'
 import { StartScreen } from '@/screens/StartScreen'
-import { TestResultsScreen } from '@/screens/TestResultsScreen'
 import { VictoryScreen } from '@/screens/VictoryScreen'
 import type { MissionActivity, MissionTopicId } from '@/types/game'
 
@@ -41,8 +39,6 @@ function GameRouter() {
 
   const screens = {
     start: <StartScreen />,
-    test: <LevelTestScreen />,
-    results: <TestResultsScreen />,
     map: <AcademyMapScreen />,
     rewards: <RewardsScreen />,
     'final-boss': <FinalBossScreen />,

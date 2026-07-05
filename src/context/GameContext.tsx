@@ -17,15 +17,12 @@ import {
   REPLAY_ACTIVITY_XP,
   TOPIC_REWARDS,
 } from '@/constants/game'
-import { getHeroLevelFromScore } from '@/constants/testQuestions'
 import type {
   GameProgress,
-  HeroLevel,
   MissionActivity,
   MissionTopicId,
   RewardState,
   Screen,
-  TestResult,
   TopicId,
 } from '@/types/game'
 import { clearProgress, hasSavedGame, loadProgress, saveProgress } from '@/utils/storage'
@@ -42,7 +39,6 @@ interface GameContextValue {
   startNewGame: () => void
   continueGame: () => void
   resetProgress: () => void
-  completeTest: (score: number, total: number) => void
   completeTopicActivity: (topicId: MissionTopicId, activity: MissionActivity) => void
   completeFinalBoss: (won: boolean, score: number) => void
   clearNewlyUnlocked: () => void
@@ -60,17 +56,25 @@ function findResumeMission(progress: GameProgress): Screen | null {
   return null
 }
 
-function getResumeScreen(progress: GameProgress): Screen {
-  if (!progress.testResult) return 'test'
-  if (!progress.unlockedTopics.includes('colors')) return 'results'
+function ensureGameStarted(progress: GameProgress): GameProgress {
+  if (progress.unlockedTopics.length > 0) return progress
+  return {
+    ...progress,
+    unlockedTopics: ['colors'],
+    heroLevel: progress.heroLevel ?? 'new-hero',
+  }
+}
 
-  const mission = findResumeMission(progress)
+function getResumeScreen(progress: GameProgress): Screen {
+  const ready = ensureGameStarted(progress)
+
+  const mission = findResumeMission(ready)
   if (mission) return mission
 
   if (
-    progress.completedTopics.includes('actions') &&
-    progress.unlockedTopics.includes('final-boss') &&
-    !progress.finalBossCompleted
+    ready.completedTopics.includes('actions') &&
+    ready.unlockedTopics.includes('final-boss') &&
+    !ready.finalBossCompleted
   ) {
     return 'final-boss'
   }
@@ -97,11 +101,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const clearNewlyUnlocked = useCallback(() => setNewlyUnlockedTopic(null), [])
   const clearBossEncourage = useCallback(() => setBossEncourage(false), [])
 
-  const startNewGame = useCallback(() => setScreen('test'), [])
+  const startNewGame = useCallback(() => {
+    const next = ensureGameStarted(progress)
+    if (next !== progress) persist(next)
+    setScreen('map')
+  }, [persist, progress])
 
   const continueGame = useCallback(() => {
-    setScreen(getResumeScreen(progress))
-  }, [progress])
+    const next = ensureGameStarted(progress)
+    if (next !== progress) persist(next)
+    setScreen(getResumeScreen(next))
+  }, [persist, progress])
 
   const resetProgress = useCallback(() => {
     clearProgress()
@@ -111,27 +121,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setBossEncourage(false)
     setScreen('start')
   }, [])
-
-  const completeTest = useCallback(
-    (score: number, total: number) => {
-      const heroLevel: HeroLevel = getHeroLevelFromScore(score)
-      const testResult: TestResult = {
-        score,
-        total,
-        heroLevel,
-        completedAt: new Date().toISOString(),
-      }
-      persist({
-        ...progress,
-        heroLevel,
-        testResult,
-        unlockedTopics: ['colors'],
-        xp: progress.xp + score * 10,
-      })
-      setScreen('results')
-    },
-    [persist, progress],
-  )
 
   const completeTopicActivity = useCallback(
     (topicId: MissionTopicId, activity: MissionActivity) => {
@@ -209,7 +198,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
       startNewGame,
       continueGame,
       resetProgress,
-      completeTest,
       completeTopicActivity,
       completeFinalBoss,
       clearNewlyUnlocked,
@@ -226,7 +214,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
       startNewGame,
       continueGame,
       resetProgress,
-      completeTest,
       completeTopicActivity,
       completeFinalBoss,
       clearNewlyUnlocked,

@@ -12,12 +12,14 @@ import { TOPIC_WORDS } from '@/constants/topicWords'
 import { useGame } from '@/context/GameContext'
 import type { MissionTopicId } from '@/types/game'
 import { shuffleArray } from '@/utils/shuffleArray'
+import { speakEnglish } from '@/utils/speech'
 
 interface MatchItem {
   id: string
   pairId: string
   type: 'word' | 'visual'
   label?: string
+  speak?: string
   hex?: string
   emoji?: string
 }
@@ -41,6 +43,7 @@ export function MatchMission({ topicId }: MatchMissionProps) {
       pairId: w.id,
       type: 'word',
       label: w.name,
+      speak: w.speak,
     }))
     const visuals: MatchItem[] = config.words.map((w) => ({
       id: `visual-${w.id}`,
@@ -54,6 +57,7 @@ export function MatchMission({ topicId }: MatchMissionProps) {
 
   const handleLeftClick = (item: MatchItem) => {
     if (matchedPairs.includes(item.pairId) || wrongFlash.length > 0) return
+    if (item.speak) speakEnglish(item.speak)
     setSelectedLeft(item.id)
     setFeedback(null)
   }
